@@ -14,7 +14,7 @@ function PetScene({ onPetClick, onSceneWheel, pet, recentAction, view }) {
 
   return (
     <section
-      className="min-h-[420px] overflow-hidden rounded-[22px] border-[3px] border-zinc-900 bg-rose-400 shadow-[0_6px_0_#44202a] md:min-h-[520px]"
+      className="h-[420px] overflow-hidden rounded-[22px] border-[3px] border-zinc-900 bg-rose-400 shadow-[0_6px_0_#44202a] md:h-[520px]"
       onWheelCapture={onSceneWheel}
     >
       <Canvas camera={{ position: [0, 1.5, 5], fov: 40 }} className="!block !h-full !w-full" shadows>

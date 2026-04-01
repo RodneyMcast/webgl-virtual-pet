@@ -2,10 +2,8 @@ import { initializeApp } from "firebase/app";
 import {
   createUserWithEmailAndPassword,
   getAuth,
-  GoogleAuthProvider,
   onAuthStateChanged,
   signInWithEmailAndPassword,
-  signInWithPopup,
   signOut,
 } from "firebase/auth";
 import {
@@ -31,7 +29,6 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
-const googleProvider = new GoogleAuthProvider();
 
 export function createDefaultPet(userName = "Guest") {
   const label = userName.split("@")[0] || userName;
@@ -56,6 +53,18 @@ export function createDefaultPet(userName = "Guest") {
   };
 }
 
+export function createDefaultUserProfile(user) {
+  const now = Date.now();
+
+  return {
+    uid: user.uid,
+    email: user.email || "",
+    role: "user",
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
 export function listenToAuthChanges(callback) {
   return onAuthStateChanged(auth, callback);
 }
@@ -68,12 +77,40 @@ export function signInUser(email, password) {
   return signInWithEmailAndPassword(auth, email, password);
 }
 
-export function signInWithGoogleUser() {
-  return signInWithPopup(auth, googleProvider);
-}
-
 export function signOutUser() {
   return signOut(auth);
+}
+
+export async function loadUserProfile(user) {
+  const userRef = doc(db, "users", user.uid);
+  const userSnapshot = await getDoc(userRef);
+
+  if (userSnapshot.exists()) {
+    return userSnapshot.data();
+  }
+
+  const defaultProfile = createDefaultUserProfile(user);
+
+  await setDoc(userRef, defaultProfile);
+
+  return defaultProfile;
+}
+
+export function listenToUserProfile(user, callback, onError) {
+  const userRef = doc(db, "users", user.uid);
+
+  return onSnapshot(
+    userRef,
+    (userSnapshot) => {
+      if (userSnapshot.exists()) {
+        callback(userSnapshot.data());
+        return;
+      }
+
+      callback(createDefaultUserProfile(user));
+    },
+    onError,
+  );
 }
 
 export async function loadPetForUser(user) {

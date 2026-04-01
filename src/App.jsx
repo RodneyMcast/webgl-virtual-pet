@@ -3,6 +3,7 @@ import { Route, Routes } from "react-router-dom";
 import Header from "./components/Header";
 import ControlPanel from "./components/ControlPanel";
 import StatsPanel from "./components/StatsPanel";
+import PetScene from "./components/PetScene";
 import ProtectedRoute from "./components/ProtectedRoute";
 import {
   createDefaultPet,
@@ -10,18 +11,18 @@ import {
   getFirebaseMessage,
   listenToAuthChanges,
   listenToPet,
+  listenToUserProfile,
   loadPetForUser,
+  loadUserProfile,
   registerUser,
   savePetForUser,
   signInUser,
   signOutUser,
 } from "./utils/firebase";
 
-const PetScene = lazy(() => import("./components/PetScene"));
 const AdminPanel = lazy(() => import("./components/AdminPanel"));
 
 const petColors = ["#d8ab64", "#ff9fc2", "#8ad8ff", "#9fd46d", "#f6d96b"];
-const adminEmails = ["rodney.hili2005@gmail.com"];
 const hungryThreshold = 100;
 const tooHungryToPlayThreshold = 10;
 const saveIntervalMs = 5 * 60 * 1000;
@@ -125,15 +126,11 @@ function App() {
   const [recentAction, setRecentAction] = useState("");
   const [statusMessage, setStatusMessage] = useState("Not signed in.");
   const [busy, setBusy] = useState(true);
+  const [userRole, setUserRole] = useState("guest");
   const [view, setView] = useState("front");
   const petRef = useRef(normalizePetState(createDefaultPet("Guest")));
   const petListenerRef = useRef(null);
-
-  const userRole = signedInUser
-    ? adminEmails.includes((signedInUser.email || "").toLowerCase())
-      ? "admin"
-      : "user"
-    : "guest";
+  const profileListenerRef = useRef(null);
 
   const unlockedColors = getUnlockedColors(pet.level, userRole);
 
@@ -148,6 +145,11 @@ function App() {
         petListenerRef.current = null;
       }
 
+      if (profileListenerRef.current) {
+        profileListenerRef.current();
+        profileListenerRef.current = null;
+      }
+
       setBusy(true);
       setSignedInUser(user);
       setRecentAction("");
@@ -158,19 +160,32 @@ function App() {
         setPet(guestPet);
         petRef.current = guestPet;
         setPasswordInput("");
+        setUserRole("guest");
         setStatusMessage("Not signed in.");
         setBusy(false);
         return;
       }
 
       try {
+        const savedProfile = await loadUserProfile(user);
         const savedPet = hydratePetState(await loadPetForUser(user));
 
         setPet(savedPet);
         petRef.current = savedPet;
         setEmailInput(user.email || "");
         setPasswordInput("");
+        setUserRole(savedProfile.role || "user");
         setStatusMessage(`Signed in as ${user.email}`);
+
+        profileListenerRef.current = listenToUserProfile(
+          user,
+          (profile) => {
+            setUserRole(profile.role || "user");
+          },
+          (error) => {
+            setStatusMessage(getFirebaseMessage(error));
+          },
+        );
 
         petListenerRef.current = listenToPet(
           user,
@@ -191,6 +206,7 @@ function App() {
 
         setPet(fallbackPet);
         petRef.current = fallbackPet;
+        setUserRole("user");
         setStatusMessage(getFirebaseMessage(error));
         setBusy(false);
       }
@@ -201,6 +217,10 @@ function App() {
 
       if (petListenerRef.current) {
         petListenerRef.current();
+      }
+
+      if (profileListenerRef.current) {
+        profileListenerRef.current();
       }
     };
   }, []);

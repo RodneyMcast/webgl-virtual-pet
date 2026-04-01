@@ -7,7 +7,24 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return isSignedIn() && request.auth.token.email == "rodney.hili2005@gmail.com";
+      return isSignedIn()
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin";
+    }
+
+    match /users/{userId} {
+      allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow create: if isSignedIn()
+        && request.auth.uid == userId
+        && request.resource.data.role == "user";
+      allow update: if isSignedIn()
+        && (
+          isAdmin()
+          || (
+            request.auth.uid == userId
+            && request.resource.data.role == resource.data.role
+          )
+        );
+      allow delete: if isAdmin();
     }
 
     match /pets/{userId} {

@@ -2,8 +2,10 @@ function ControlPanel({
   activeView,
   onColourClick,
   onFeedClick,
+  onToggleLight,
   onToyClick,
   onViewChange,
+  lightMode,
 }) {
   const buttonClass =
     "w-full rounded-2xl border-2 border-zinc-900 bg-lime-300 px-4 py-3 text-sm font-black text-zinc-900 shadow-[0_4px_0_#3a251f] transition hover:-translate-y-0.5 hover:bg-yellow-200";
@@ -25,6 +27,10 @@ function ControlPanel({
       </button>
       <button className={`${buttonClass} mt-2.5`} onClick={onColourClick} type="button">
         Change Colour
+      </button>
+
+      <button className={`${buttonClass} mt-2.5`} onClick={onToggleLight} type="button">
+        Light: {lightMode === "bright" ? "Bright" : "Soft"}
       </button>
 
       <h2 className="mb-3 mt-5 text-2xl font-black text-zinc-900">Views</h2>

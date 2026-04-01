@@ -1,5 +1,6 @@
 import { Canvas } from "@react-three/fiber";
 import { Suspense, lazy, useRef } from "react";
+import { PCFShadowMap } from "three";
 import Lighting from "./Lighting";
 import Floor from "./Floor";
 import Pet from "./Pet";
@@ -9,7 +10,7 @@ import Sky from "./Sky";
 
 const ExternalAsset = lazy(() => import("./ExternalAsset"));
 
-function PetScene({ onPetClick, onSceneWheel, pet, recentAction, view }) {
+function PetScene({ lightMode, onPetClick, onSceneWheel, pet, recentAction, view }) {
   const controlsRef = useRef();
 
   return (
@@ -20,11 +21,16 @@ function PetScene({ onPetClick, onSceneWheel, pet, recentAction, view }) {
       <Canvas
         camera={{ position: [0, 1.5, 5], fov: 40 }}
         className="!block !h-full !w-full"
-        shadows="percentage"
+        dpr={[1, 1.5]}
+        gl={{ antialias: true, powerPreference: "high-performance" }}
+        onCreated={({ gl }) => {
+          gl.shadowMap.type = PCFShadowMap;
+        }}
+        shadows
       >
         <color args={["#ffe9d0"]} attach="background" />
         <SceneCamera controlsRef={controlsRef} view={view} />
-        <Lighting />
+        <Lighting mode={lightMode} />
         <Sky />
         <Floor />
         <Pet

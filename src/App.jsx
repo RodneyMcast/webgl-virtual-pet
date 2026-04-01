@@ -140,6 +140,7 @@ function App() {
   const [busy, setBusy] = useState(true);
   const [userRole, setUserRole] = useState("guest");
   const [view, setView] = useState("front");
+  const [lightMode, setLightMode] = useState("bright");
   const petRef = useRef(normalizePetState(createDefaultPet("Guest")));
   const petListenerRef = useRef(null);
   const profileListenerRef = useRef(null);
@@ -567,6 +568,10 @@ function App() {
     setStatusMessage("Camera moved. Pet reacted.");
   }
 
+  function handleToggleLight() {
+    setLightMode((currentMode) => (currentMode === "bright" ? "soft" : "bright"));
+  }
+
   function renderPanelFallback(text) {
     return (
       <section className="rounded-[22px] border-[3px] border-zinc-900 bg-rose-400 px-4 py-5 text-sm font-bold text-zinc-900 shadow-[0_6px_0_#44202a]">
@@ -579,6 +584,7 @@ function App() {
     return (
       <main className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
         <PetScene
+          lightMode={lightMode}
           onPetClick={handlePetClick}
           onSceneWheel={handleSceneWheel}
           pet={pet}
@@ -589,8 +595,10 @@ function App() {
         <div className="grid gap-4">
           <ControlPanel
             activeView={view}
+            lightMode={lightMode}
             onColourClick={handleColourClick}
             onFeedClick={handleFeedClick}
+            onToggleLight={handleToggleLight}
             onToyClick={handleToyClick}
             onViewChange={setView}
           />

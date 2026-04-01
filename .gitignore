@@ -1,0 +1,9 @@
+node_modules/
+dist/
+vendor/
+firebase-debug.log
+
+.DS_Store
+Thumbs.db
+
+course-materials/

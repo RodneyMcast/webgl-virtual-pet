@@ -2,6 +2,7 @@ node_modules/
 dist/
 vendor/
 firebase-debug.log
+.firebase/
 
 .DS_Store
 Thumbs.db

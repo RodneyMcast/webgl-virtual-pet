@@ -3,9 +3,9 @@ import { Navigate } from "react-router-dom";
 function ProtectedRoute({ busy, signedInUser, userRole, requireAdmin = false, children }) {
   if (busy) {
     return (
-      <main className="admin-layout">
-        <section className="panel">
-          <p className="small-text">Loading...</p>
+      <main className="max-w-3xl">
+        <section className="rounded-[22px] border-[3px] border-zinc-900 bg-rose-400 px-4 py-5 text-sm font-bold text-zinc-900 shadow-[0_6px_0_#44202a]">
+          <p>Loading...</p>
         </section>
       </main>
     );

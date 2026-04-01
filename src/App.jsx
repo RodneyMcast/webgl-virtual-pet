@@ -1,11 +1,9 @@
-import { useEffect, useRef, useState } from "react";
+import { Suspense, lazy, useEffect, useRef, useState } from "react";
 import { Route, Routes } from "react-router-dom";
 import Header from "./components/Header";
 import ControlPanel from "./components/ControlPanel";
 import StatsPanel from "./components/StatsPanel";
-import PetScene from "./components/PetScene";
 import ProtectedRoute from "./components/ProtectedRoute";
-import AdminPanel from "./components/AdminPanel";
 import {
   createDefaultPet,
   deletePetForUser,
@@ -18,6 +16,9 @@ import {
   signInUser,
   signOutUser,
 } from "./utils/firebase";
+
+const PetScene = lazy(() => import("./components/PetScene"));
+const AdminPanel = lazy(() => import("./components/AdminPanel"));
 
 const petColors = ["#d8ab64", "#ff9fc2", "#8ad8ff", "#9fd46d", "#f6d96b"];
 const adminEmails = ["rodney.hili2005@gmail.com"];
@@ -534,18 +535,28 @@ function App() {
     setStatusMessage("Camera moved. Pet reacted.");
   }
 
+  function renderPanelFallback(text) {
+    return (
+      <section className="rounded-[22px] border-[3px] border-zinc-900 bg-rose-400 px-4 py-5 text-sm font-bold text-zinc-900 shadow-[0_6px_0_#44202a]">
+        {text}
+      </section>
+    );
+  }
+
   function renderHomePage() {
     return (
-      <main className="main-layout">
-        <PetScene
-          onPetClick={handlePetClick}
-          onSceneWheel={handleSceneWheel}
-          pet={pet}
-          recentAction={recentAction}
-          view={view}
-        />
+      <main className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
+        <Suspense fallback={renderPanelFallback("Loading 3D scene...")}>
+          <PetScene
+            onPetClick={handlePetClick}
+            onSceneWheel={handleSceneWheel}
+            pet={pet}
+            recentAction={recentAction}
+            view={view}
+          />
+        </Suspense>
 
-        <div className="side-panel">
+        <div className="grid gap-4">
           <ControlPanel
             activeView={view}
             onColourClick={handleColourClick}
@@ -564,7 +575,8 @@ function App() {
   }
 
   return (
-    <div className="app">
+    <div className="min-h-screen bg-[#ffb5c4] text-zinc-900">
+      <div className="mx-auto flex min-h-screen max-w-7xl flex-col px-4 py-4 md:px-6">
       <Header
         busy={busy}
         emailInput={emailInput}
@@ -590,16 +602,19 @@ function App() {
               signedInUser={signedInUser}
               userRole={userRole}
             >
-              <AdminPanel
-                onDeleteSave={handleDeleteSave}
-                signedInUser={signedInUser?.email || ""}
-                userRole={userRole}
-              />
+              <Suspense fallback={renderPanelFallback("Loading admin page...")}>
+                <AdminPanel
+                  onDeleteSave={handleDeleteSave}
+                  signedInUser={signedInUser?.email || ""}
+                  userRole={userRole}
+                />
+              </Suspense>
             </ProtectedRoute>
           )}
           path="/admin"
         />
       </Routes>
+      </div>
     </div>
   );
 }

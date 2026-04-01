@@ -27,6 +27,10 @@ function SceneCamera({ controlsRef, view }) {
 
   useEffect(() => {
     movingRef.current = true;
+
+    if (controlsRef.current) {
+      controlsRef.current.enabled = false;
+    }
   }, [view]);
 
   useFrame((_, delta) => {
@@ -58,6 +62,17 @@ function SceneCamera({ controlsRef, view }) {
       Math.abs(camera.fov - nextView.fov) < 0.2;
 
     if (closeEnough) {
+      camera.position.set(...nextView.position);
+      camera.fov = nextView.fov;
+      camera.updateProjectionMatrix();
+      targetRef.current.set(...nextView.target);
+
+      if (controlsRef.current) {
+        controlsRef.current.target.copy(targetRef.current);
+        controlsRef.current.enabled = true;
+        controlsRef.current.update();
+      }
+
       movingRef.current = false;
     }
   });

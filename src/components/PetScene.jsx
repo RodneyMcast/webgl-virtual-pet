@@ -17,7 +17,11 @@ function PetScene({ onPetClick, onSceneWheel, pet, recentAction, view }) {
       className="h-[420px] overflow-hidden rounded-[22px] border-[3px] border-zinc-900 bg-rose-400 shadow-[0_6px_0_#44202a] md:h-[520px]"
       onWheelCapture={onSceneWheel}
     >
-      <Canvas camera={{ position: [0, 1.5, 5], fov: 40 }} className="!block !h-full !w-full" shadows>
+      <Canvas
+        camera={{ position: [0, 1.5, 5], fov: 40 }}
+        className="!block !h-full !w-full"
+        shadows="percentage"
+      >
         <color args={["#ffe9d0"]} attach="background" />
         <SceneCamera controlsRef={controlsRef} view={view} />
         <Lighting />

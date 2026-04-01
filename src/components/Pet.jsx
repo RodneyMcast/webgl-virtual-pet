@@ -7,27 +7,35 @@ function Pet({ color, expression, recentAction, onPetClick }) {
   const leftEyeRef = useRef();
   const rightEyeRef = useRef();
   const mouthRef = useRef();
+  const timeRef = useRef(0);
 
   const bodyColor = color;
   const muzzleColor = "#fff1dd";
   const pawColor = new Color(color).offsetHSL(0, 0, -0.18).getStyle();
   const noseColor = "#d99abb";
 
-  useFrame((state, delta) => {
+  useFrame((_, delta) => {
     if (!rootRef.current || !leftEyeRef.current || !rightEyeRef.current || !mouthRef.current) {
       return;
     }
 
-    const time = state.clock.getElapsedTime();
+    timeRef.current += delta;
+    const time = timeRef.current;
+    const isJubilant = expression === "jubilant";
     const isHappy =
+      isJubilant ||
       expression === "happy" ||
       recentAction === "toy" ||
       recentAction === "feed" ||
       recentAction === "pet";
+    const isSad = expression === "sad";
+    const isDepressed = expression === "depressed";
 
     rootRef.current.position.y = MathUtils.damp(
       rootRef.current.position.y,
-      0.12 + Math.sin(time * 2) * 0.04 + (isHappy ? Math.abs(Math.sin(time * 7)) * 0.08 : 0),
+      0.12 +
+        Math.sin(time * 2) * 0.04 +
+        (isHappy ? Math.abs(Math.sin(time * (isJubilant ? 9 : 7))) * (isJubilant ? 0.12 : 0.08) : 0),
       5,
       delta,
     );
@@ -39,16 +47,24 @@ function Pet({ color, expression, recentAction, onPetClick }) {
       delta,
     );
 
-    const eyeScale = expression === "sad" ? 0.68 : 1;
+    const eyeScale = isDepressed ? 0.52 : isSad ? 0.68 : isJubilant ? 1.08 : 1;
 
     leftEyeRef.current.scale.y = MathUtils.damp(leftEyeRef.current.scale.y, eyeScale, 10, delta);
     rightEyeRef.current.scale.y = MathUtils.damp(rightEyeRef.current.scale.y, eyeScale, 10, delta);
 
-    if (expression === "happy") {
+    if (isJubilant) {
+      mouthRef.current.scale.x = MathUtils.damp(mouthRef.current.scale.x, 1.12, 6, delta);
+      mouthRef.current.scale.y = MathUtils.damp(mouthRef.current.scale.y, 1.08, 6, delta);
+      mouthRef.current.position.y = MathUtils.damp(mouthRef.current.position.y, -0.225, 6, delta);
+    } else if (expression === "happy") {
       mouthRef.current.scale.x = MathUtils.damp(mouthRef.current.scale.x, 1.02, 6, delta);
       mouthRef.current.scale.y = MathUtils.damp(mouthRef.current.scale.y, 1.02, 6, delta);
       mouthRef.current.position.y = MathUtils.damp(mouthRef.current.position.y, -0.21, 6, delta);
-    } else if (expression === "sad") {
+    } else if (isDepressed) {
+      mouthRef.current.scale.x = MathUtils.damp(mouthRef.current.scale.x, 0.82, 6, delta);
+      mouthRef.current.scale.y = MathUtils.damp(mouthRef.current.scale.y, 0.78, 6, delta);
+      mouthRef.current.position.y = MathUtils.damp(mouthRef.current.position.y, -0.165, 6, delta);
+    } else if (isSad) {
       mouthRef.current.scale.x = MathUtils.damp(mouthRef.current.scale.x, 0.9, 6, delta);
       mouthRef.current.scale.y = MathUtils.damp(mouthRef.current.scale.y, 0.85, 6, delta);
       mouthRef.current.position.y = MathUtils.damp(mouthRef.current.position.y, -0.18, 6, delta);

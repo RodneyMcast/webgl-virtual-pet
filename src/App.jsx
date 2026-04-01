@@ -36,11 +36,23 @@ const actionFlashMs = 900;
 const toyVisibleMs = actionFlashMs * 2;
 
 function getPetExpression(pet) {
-  if (pet.hunger < 35 || pet.happiness < 35) {
-    return "sad";
+  if (pet.happiness <= 0) {
+    return "depressed";
   }
 
-  return "neutral";
+  if (pet.happiness >= 95) {
+    return "jubilant";
+  }
+
+  if (pet.happiness >= 75) {
+    return "happy";
+  }
+
+  if (pet.happiness >= 40) {
+    return "neutral";
+  }
+
+  return "sad";
 }
 
 function normalizePetState(pet) {
@@ -566,15 +578,13 @@ function App() {
   function renderHomePage() {
     return (
       <main className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
-        <Suspense fallback={renderPanelFallback("Loading 3D scene...")}>
-          <PetScene
-            onPetClick={handlePetClick}
-            onSceneWheel={handleSceneWheel}
-            pet={pet}
-            recentAction={recentAction}
-            view={view}
-          />
-        </Suspense>
+        <PetScene
+          onPetClick={handlePetClick}
+          onSceneWheel={handleSceneWheel}
+          pet={pet}
+          recentAction={recentAction}
+          view={view}
+        />
 
         <div className="grid gap-4">
           <ControlPanel
@@ -597,43 +607,47 @@ function App() {
   return (
     <div className="min-h-screen bg-[#ffb5c4] text-zinc-900">
       <div className="mx-auto flex min-h-screen max-w-7xl flex-col px-4 py-4 md:px-6">
-      <Header
-        busy={busy}
-        emailInput={emailInput}
-        onEmailChange={setEmailInput}
-        onPasswordChange={setPasswordInput}
-        onRegister={handleRegister}
-        onSave={handleSave}
-        onSignIn={handleSignIn}
-        onSignOut={handleSignOut}
-        passwordInput={passwordInput}
-        signedInUser={signedInUser?.email || ""}
-        statusMessage={statusMessage}
-        userRole={userRole}
-      />
-
-      <Routes>
-        <Route element={renderHomePage()} path="/" />
-        <Route
-          element={(
-            <ProtectedRoute
-              busy={busy}
-              requireAdmin
-              signedInUser={signedInUser}
-              userRole={userRole}
-            >
-              <Suspense fallback={renderPanelFallback("Loading admin page...")}>
-                <AdminPanel
-                  onDeleteSave={handleDeleteSave}
-                  signedInUser={signedInUser?.email || ""}
-                  userRole={userRole}
-                />
-              </Suspense>
-            </ProtectedRoute>
-          )}
-          path="/admin"
+        <Header
+          busy={busy}
+          emailInput={emailInput}
+          onEmailChange={setEmailInput}
+          onPasswordChange={setPasswordInput}
+          onRegister={handleRegister}
+          onSave={handleSave}
+          onSignIn={handleSignIn}
+          onSignOut={handleSignOut}
+          passwordInput={passwordInput}
+          signedInUser={signedInUser?.email || ""}
+          statusMessage={statusMessage}
+          userRole={userRole}
         />
-      </Routes>
+
+        {renderHomePage()}
+
+        <Routes>
+          <Route element={null} path="/" />
+          <Route
+            element={(
+              <div className="mt-4">
+                <ProtectedRoute
+                  busy={busy}
+                  requireAdmin
+                  signedInUser={signedInUser}
+                  userRole={userRole}
+                >
+                  <Suspense fallback={renderPanelFallback("Loading admin page...")}>
+                    <AdminPanel
+                      onDeleteSave={handleDeleteSave}
+                      signedInUser={signedInUser?.email || ""}
+                      userRole={userRole}
+                    />
+                  </Suspense>
+                </ProtectedRoute>
+              </div>
+            )}
+            path="/admin"
+          />
+        </Routes>
       </div>
     </div>
   );

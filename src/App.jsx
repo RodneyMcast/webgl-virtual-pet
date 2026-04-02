@@ -1,3 +1,4 @@
+// Main app file. This is where the auth, pet state, sounds, saving, and routes all meet.
 import { Suspense, lazy, useEffect, useRef, useState } from "react";
 import { Route, Routes } from "react-router-dom";
 import Header from "./components/Header";
@@ -7,6 +8,7 @@ import PetScene from "./components/PetScene";
 import ProtectedRoute from "./components/ProtectedRoute";
 import {
   createDefaultPet,
+  deletePetById,
   deletePetForUser,
   getFirebaseMessage,
   listenToAuthChanges,
@@ -34,7 +36,19 @@ const offlineStatWindowMs = 30 * 60 * 1000;
 const offlineStatDrop = 5;
 const actionFlashMs = 900;
 const toyVisibleMs = actionFlashMs * 2;
+const musicVolume = 0.14;
+const soundVolume = 0.4;
+const shortDogSoundMs = 5 * 1000;
+const idleDogSoundIntervalMs = 12 * 1000;
+const puppySoundPath = "/sounds/yoursperfectguy-cute-puppy-sound-effect-sfx-1-336356.mp3";
+const toySoundPath = "/sounds/freesound_community-dog-toy-5987.mp3";
+const eatingSoundPath = "/sounds/freesound_community-dog-eating-74505.mp3";
+const pantingSoundPath = "/sounds/fnx_sound-animated-dog-panting-287307.mp3";
+const whiningSoundPath = "/sounds/freesound_community-whining-dog-6110.mp3";
+const musicPath =
+  "/sounds/openmindaudio-good-vibes-podcast-introoutro-warm-positive-closing-theme-469100.mp3";
 
+// This keeps the pet face linked to the happiness meter.
 function getPetExpression(pet) {
   if (pet.happiness <= 0) {
     return "depressed";
@@ -55,6 +69,7 @@ function getPetExpression(pet) {
   return "sad";
 }
 
+// This makes sure every pet has the fields the app expects.
 function normalizePetState(pet) {
   const defaultPet = createDefaultPet("Guest");
   const nextPet = {
@@ -75,6 +90,7 @@ function normalizePetState(pet) {
   return nextPet;
 }
 
+// This applies offline stat loss when the user comes back later.
 function hydratePetState(pet) {
   const nextPet = normalizePetState(pet);
   const now = Date.now();
@@ -92,6 +108,7 @@ function hydratePetState(pet) {
   return nextPet;
 }
 
+// This controls which colours unlock at each level.
 function getUnlockedColors(level, userRole) {
   if (userRole === "admin" || level >= 5) {
     return petColors;
@@ -108,6 +125,7 @@ function getUnlockedColors(level, userRole) {
   return petColors.slice(0, 2);
 }
 
+// This checks if both play and feed progress are enough for a level up.
 function applyLevelProgress(pet) {
   const nextPet = normalizePetState(pet);
 
@@ -130,6 +148,7 @@ function applyLevelProgress(pet) {
   return { pet: nextPet, leveledUp: true };
 }
 
+// Main React component for the full website.
 function App() {
   const [emailInput, setEmailInput] = useState("");
   const [passwordInput, setPasswordInput] = useState("");
@@ -141,9 +160,23 @@ function App() {
   const [userRole, setUserRole] = useState("guest");
   const [view, setView] = useState("front");
   const [lightMode, setLightMode] = useState("bright");
+  const [musicMuted, setMusicMuted] = useState(false);
+  const [dogSoundsMuted, setDogSoundsMuted] = useState(false);
   const petRef = useRef(normalizePetState(createDefaultPet("Guest")));
   const petListenerRef = useRef(null);
   const profileListenerRef = useRef(null);
+  const musicRef = useRef(null);
+  const puppySoundRef = useRef(null);
+  const toySoundRef = useRef(null);
+  const eatingSoundRef = useRef(null);
+  const pantingSoundRef = useRef(null);
+  const whiningSoundRef = useRef(null);
+  const lastInteractionAtRef = useRef(Date.now());
+  const lastIdleSoundAtRef = useRef(0);
+  const activeDogSoundRef = useRef(null);
+  const dogSoundTimerRef = useRef(null);
+  const musicMutedRef = useRef(false);
+  const dogSoundsMutedRef = useRef(false);
 
   const unlockedColors = getUnlockedColors(pet.level, userRole);
 
@@ -152,6 +185,109 @@ function App() {
   }, [pet]);
 
   useEffect(() => {
+    musicMutedRef.current = musicMuted;
+  }, [musicMuted]);
+
+  useEffect(() => {
+    dogSoundsMutedRef.current = dogSoundsMuted;
+  }, [dogSoundsMuted]);
+
+  useEffect(() => {
+    // Load the audio files once when the app starts.
+    musicRef.current = new Audio(musicPath);
+    musicRef.current.loop = true;
+    musicRef.current.volume = musicVolume;
+
+    puppySoundRef.current = new Audio(puppySoundPath);
+    toySoundRef.current = new Audio(toySoundPath);
+    eatingSoundRef.current = new Audio(eatingSoundPath);
+    pantingSoundRef.current = new Audio(pantingSoundPath);
+    whiningSoundRef.current = new Audio(whiningSoundPath);
+
+    return () => {
+      if (dogSoundTimerRef.current) {
+        window.clearTimeout(dogSoundTimerRef.current);
+      }
+
+      [
+        musicRef.current,
+        puppySoundRef.current,
+        toySoundRef.current,
+        eatingSoundRef.current,
+        pantingSoundRef.current,
+        whiningSoundRef.current,
+      ].forEach((audio) => {
+        if (!audio) {
+          return;
+        }
+
+        audio.pause();
+        audio.src = "";
+      });
+    };
+  }, []);
+
+  useEffect(() => {
+    // Keep the music button in sync with the actual music audio.
+    const music = musicRef.current;
+
+    if (!music) {
+      return;
+    }
+
+    if (musicMuted) {
+      music.pause();
+      return;
+    }
+
+    music.volume = musicVolume;
+    music.play().catch(() => {});
+  }, [musicMuted]);
+
+  useEffect(() => {
+    // If dog sounds are muted, stop any sound that is already playing.
+    if (!dogSoundsMuted) {
+      return;
+    }
+
+    stopDogSound();
+  }, [dogSoundsMuted]);
+
+  useEffect(() => {
+    // This handles the idle dog sounds when the user leaves the pet alone.
+    const timer = window.setInterval(() => {
+      if (dogSoundsMuted) {
+        return;
+      }
+
+      const now = Date.now();
+      const isSad = petRef.current.expression === "sad" || petRef.current.expression === "depressed";
+
+      if (
+        now - lastInteractionAtRef.current < idleDogSoundIntervalMs ||
+        now - lastIdleSoundAtRef.current < idleDogSoundIntervalMs
+      ) {
+        return;
+      }
+
+      if (isSad) {
+        playDogSound(whiningSoundRef, 0.4, shortDogSoundMs);
+      } else {
+        playDogSound(
+          Math.random() < 0.5 ? whiningSoundRef : pantingSoundRef,
+          0.35,
+          shortDogSoundMs,
+        );
+      }
+
+      lastIdleSoundAtRef.current = now;
+    }, 1000);
+
+    return () => window.clearInterval(timer);
+  }, [dogSoundsMuted]);
+
+  useEffect(() => {
+    // This listens for Firebase sign in/out and loads the saved user + pet data.
     const unsubscribe = listenToAuthChanges(async (user) => {
       if (petListenerRef.current) {
         petListenerRef.current();
@@ -239,6 +375,7 @@ function App() {
   }, []);
 
   useEffect(() => {
+    // This clears short action reactions like feed, toy, or pet.
     if (!recentAction) {
       return undefined;
     }
@@ -260,6 +397,7 @@ function App() {
   }, [recentAction]);
 
   useEffect(() => {
+    // This hides the toy again after a short time.
     if (!pet.toyVisible) {
       return undefined;
     }
@@ -284,6 +422,7 @@ function App() {
   }, [pet.toyVisible]);
 
   useEffect(() => {
+    // Happiness slowly drops while the app is open.
     const timer = window.setInterval(() => {
       setPet((currentPet) => {
         const nextPet = {
@@ -301,6 +440,7 @@ function App() {
   }, []);
 
   useEffect(() => {
+    // Hunger also drops over time while the app is open.
     const timer = window.setInterval(() => {
       setPet((currentPet) => {
         const nextPet = {
@@ -318,6 +458,7 @@ function App() {
   }, []);
 
   useEffect(() => {
+    // Autosave to Firestore every few minutes for persistence.
     if (!signedInUser) {
       return undefined;
     }
@@ -342,6 +483,7 @@ function App() {
   }, [signedInUser]);
 
   useEffect(() => {
+    // Space is a quick keyboard interaction for the pet.
     function handleKeyDown(event) {
       if (event.repeat) {
         return;
@@ -356,22 +498,89 @@ function App() {
       }
 
       event.preventDefault();
-      setRecentAction("pet");
-      setStatusMessage("Pet reacted.");
+      registerInteraction();
+      persistPet(
+        {
+          ...petRef.current,
+          happiness: Math.min(100, petRef.current.happiness + 5),
+        },
+        "pet",
+        "Pet enjoyed the attention.",
+      );
+      playDogSound(puppySoundRef, soundVolume, shortDogSoundMs);
     }
 
     window.addEventListener("keydown", handleKeyDown);
 
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
+  }, [signedInUser]);
+
+  function startMusic() {
+    // Start the background music if the user has not muted it.
+    const music = musicRef.current;
+
+    if (!music || musicMutedRef.current) {
+      return;
+    }
+
+    music.volume = musicVolume;
+    music.play().catch(() => {});
+  }
+
+  function stopDogSound() {
+    // Stop the current dog/effect sound so sounds do not stack.
+    if (dogSoundTimerRef.current) {
+      window.clearTimeout(dogSoundTimerRef.current);
+      dogSoundTimerRef.current = null;
+    }
+
+    if (!activeDogSoundRef.current) {
+      return;
+    }
+
+    activeDogSoundRef.current.pause();
+    activeDogSoundRef.current.currentTime = 0;
+    activeDogSoundRef.current = null;
+  }
+
+  function playDogSound(soundRef, volume = soundVolume, durationMs = shortDogSoundMs) {
+    // Play one short dog/effect sound and cut it off after the chosen time.
+    if (dogSoundsMutedRef.current || !soundRef.current) {
+      return;
+    }
+
+    stopDogSound();
+
+    soundRef.current.pause();
+    soundRef.current.currentTime = 0;
+    soundRef.current.volume = volume;
+    soundRef.current.play().catch(() => {});
+    activeDogSoundRef.current = soundRef.current;
+
+    if (durationMs > 0) {
+      dogSoundTimerRef.current = window.setTimeout(() => {
+        if (activeDogSoundRef.current === soundRef.current) {
+          stopDogSound();
+        }
+      }, durationMs);
+    }
+  }
+
+  function registerInteraction() {
+    // Track user activity so idle sounds know when to wait.
+    lastInteractionAtRef.current = Date.now();
+    startMusic();
+  }
 
   function persistPet(nextPet, nextAction = "", nextMessage = "", saveNow = true) {
+    // This is the main save helper for pet changes.
     const now = Date.now();
     const preparedPet = normalizePetState({
       ...nextPet,
       lastStateAt: now,
       lastSavedAt: saveNow ? now : nextPet.lastSavedAt,
     });
+    preparedPet.expression = getPetExpression(preparedPet);
 
     setPet(preparedPet);
     petRef.current = preparedPet;
@@ -392,15 +601,18 @@ function App() {
   }
 
   function handleSave() {
+    // Manual save button.
     if (!signedInUser) {
       setStatusMessage("Sign in first to save.");
       return;
     }
 
+    registerInteraction();
     persistPet({ ...petRef.current }, "", "Saved to Firebase.");
   }
 
   async function handleRegister() {
+    // Create a Firebase auth account.
     const email = emailInput.trim();
 
     if (!email || !passwordInput) {
@@ -408,6 +620,7 @@ function App() {
       return;
     }
 
+    registerInteraction();
     setBusy(true);
     setStatusMessage("Creating account...");
 
@@ -420,6 +633,7 @@ function App() {
   }
 
   async function handleSignIn() {
+    // Sign in with Firebase auth.
     const email = emailInput.trim();
 
     if (!email || !passwordInput) {
@@ -427,6 +641,7 @@ function App() {
       return;
     }
 
+    registerInteraction();
     setBusy(true);
     setStatusMessage("Signing in...");
 
@@ -439,6 +654,9 @@ function App() {
   }
 
   async function handleSignOut() {
+    // Save once more, then sign out.
+    registerInteraction();
+
     if (signedInUser) {
       const now = Date.now();
       const snapshotPet = normalizePetState({
@@ -465,22 +683,32 @@ function App() {
     }
   }
 
-  async function handleDeleteSave() {
-    if (!signedInUser) {
+  async function handleDeleteSave(targetUserId, targetLabel = "") {
+    // Admin can delete one saved pet at a time from Firestore.
+    if (!signedInUser && !targetUserId) {
       return;
     }
 
     setStatusMessage("Deleting Firestore save...");
 
     try {
+      if (targetUserId) {
+        await deletePetById(targetUserId);
+        setStatusMessage(`Deleted save for ${targetLabel || targetUserId}.`);
+        return;
+      }
+
       await deletePetForUser(signedInUser);
+      setStatusMessage("Deleted your Firestore save.");
     } catch (error) {
       setStatusMessage(getFirebaseMessage(error));
     }
   }
 
   function handleToyClick() {
+    // Playing with the toy raises happiness and play EXP.
     const currentPet = petRef.current;
+    registerInteraction();
 
     if (currentPet.hunger <= tooHungryToPlayThreshold) {
       setStatusMessage("Pet is too hungry to play. Feed it first.");
@@ -493,7 +721,6 @@ function App() {
       toyVisible: true,
       hunger: Math.max(0, currentPet.hunger - 10),
       happiness: Math.min(100, currentPet.happiness + 12),
-      expression: "happy",
     };
 
     if (gainsExp) {
@@ -508,10 +735,13 @@ function App() {
         : "Pet played, but happiness is already full so no EXP was earned.";
 
     persistPet(levelResult.pet, "toy", message);
+    playDogSound(toySoundRef, soundVolume, actionFlashMs);
   }
 
   function handleFeedClick() {
+    // Feeding only changes hunger and feed EXP.
     const currentPet = petRef.current;
+    registerInteraction();
 
     if (currentPet.hunger >= hungryThreshold) {
       setStatusMessage("Pet is already full.");
@@ -522,7 +752,6 @@ function App() {
     const nextPet = {
       ...currentPet,
       hunger: nextHunger,
-      expression: "happy",
       feedExp: currentPet.feedExp + 1,
       lastFullAt: nextHunger >= 100 ? Date.now() : currentPet.lastFullAt,
     };
@@ -535,9 +764,12 @@ function App() {
         : "Pet has eaten.";
 
     persistPet(levelResult.pet, "feed", message);
+    playDogSound(eatingSoundRef, soundVolume, actionFlashMs);
   }
 
   function handleColourClick() {
+    // Cycle through the colours the player has unlocked.
+    registerInteraction();
     persistPet(
       {
         ...petRef.current,
@@ -553,26 +785,52 @@ function App() {
   }
 
   function handlePetClick() {
+    // Clicking the pet is a simple extra interaction.
+    registerInteraction();
     persistPet(
       {
         ...petRef.current,
-        happiness: Math.min(100, petRef.current.happiness + 4),
-        expression: "happy",
+        happiness: Math.min(100, petRef.current.happiness + 5),
       },
       "pet",
+      "Pet enjoyed the attention.",
     );
+    playDogSound(puppySoundRef, soundVolume, shortDogSoundMs);
   }
 
   function handleSceneWheel() {
+    // This counts as a small scene interaction for the assignment.
+    registerInteraction();
     setRecentAction("pet");
     setStatusMessage("Camera moved. Pet reacted.");
   }
 
   function handleToggleLight() {
+    // Simple adjustable lighting with two modes.
+    registerInteraction();
     setLightMode((currentMode) => (currentMode === "bright" ? "soft" : "bright"));
   }
 
+  function handleToggleMusic() {
+    // Mute or unmute the background music.
+    lastInteractionAtRef.current = Date.now();
+    setMusicMuted((currentState) => !currentState);
+  }
+
+  function handleToggleDogSounds() {
+    // Mute or unmute the dog and action sounds.
+    lastInteractionAtRef.current = Date.now();
+    setDogSoundsMuted((currentState) => !currentState);
+  }
+
+  function handleViewChange(nextView) {
+    // Change camera view and let the camera animate to it.
+    registerInteraction();
+    setView(nextView);
+  }
+
   function renderPanelFallback(text) {
+    // Small loading panel used for lazy loaded pages.
     return (
       <section className="rounded-[22px] border-[3px] border-zinc-900 bg-rose-400 px-4 py-5 text-sm font-bold text-zinc-900 shadow-[0_6px_0_#44202a]">
         {text}
@@ -581,6 +839,7 @@ function App() {
   }
 
   function renderHomePage() {
+    // Home page = 3D scene on one side and UI panels on the other.
     return (
       <main className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
         <PetScene
@@ -600,7 +859,7 @@ function App() {
             onFeedClick={handleFeedClick}
             onToggleLight={handleToggleLight}
             onToyClick={handleToyClick}
-            onViewChange={setView}
+            onViewChange={handleViewChange}
           />
           <StatsPanel
             pet={pet}
@@ -617,26 +876,28 @@ function App() {
       <div className="mx-auto flex min-h-screen max-w-7xl flex-col px-4 py-4 md:px-6">
         <Header
           busy={busy}
+          dogSoundsMuted={dogSoundsMuted}
           emailInput={emailInput}
+          musicMuted={musicMuted}
           onEmailChange={setEmailInput}
           onPasswordChange={setPasswordInput}
           onRegister={handleRegister}
           onSave={handleSave}
           onSignIn={handleSignIn}
           onSignOut={handleSignOut}
+          onToggleDogSounds={handleToggleDogSounds}
+          onToggleMusic={handleToggleMusic}
           passwordInput={passwordInput}
           signedInUser={signedInUser?.email || ""}
           statusMessage={statusMessage}
           userRole={userRole}
         />
 
-        {renderHomePage()}
-
         <Routes>
-          <Route element={null} path="/" />
+          <Route element={renderHomePage()} path="/" />
           <Route
             element={(
-              <div className="mt-4">
+              <div className="mb-4">
                 <ProtectedRoute
                   busy={busy}
                   requireAdmin

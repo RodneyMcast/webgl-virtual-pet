@@ -1,3 +1,4 @@
+// Small stats panel showing the saved pet data that drives the scene.
 function Meter({ label, value }) {
   return (
     <div className="mb-4">
@@ -15,6 +16,7 @@ function Meter({ label, value }) {
   );
 }
 
+// Shows the pet state, progression, and last save time.
 function StatsPanel({ pet, signedInUser, unlockedColorCount }) {
   const lastSavedText = pet.lastSavedAt
     ? new Date(pet.lastSavedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })

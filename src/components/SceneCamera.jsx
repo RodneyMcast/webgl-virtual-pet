@@ -1,3 +1,4 @@
+// Camera view file. This handles the smooth move between front, close, and room views.
 import { useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useRef } from "react";
 import { MathUtils, Vector3 } from "three";
@@ -20,12 +21,14 @@ const viewSettings = {
   },
 };
 
+// Smooth camera transitions for the required viewpoint changes.
 function SceneCamera({ controlsRef, view }) {
   const { camera } = useThree();
   const targetRef = useRef(new Vector3(0, 0.2, 0));
   const movingRef = useRef(true);
 
   useEffect(() => {
+    // Lock controls while the camera moves to the chosen preset.
     movingRef.current = true;
 
     if (controlsRef.current) {
@@ -62,6 +65,7 @@ function SceneCamera({ controlsRef, view }) {
       Math.abs(camera.fov - nextView.fov) < 0.2;
 
     if (closeEnough) {
+      // Once the camera reaches the preset, give control back to the user.
       camera.position.set(...nextView.position);
       camera.fov = nextView.fov;
       camera.updateProjectionMatrix();

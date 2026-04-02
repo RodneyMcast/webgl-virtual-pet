@@ -1,3 +1,4 @@
+// Top bar for sign in, save, sound toggles, and page navigation.
 import { NavLink } from "react-router-dom";
 
 const buttonClass =
@@ -7,13 +8,17 @@ const inputClass =
 
 function Header({
   busy,
+  dogSoundsMuted,
   emailInput,
+  musicMuted,
   onEmailChange,
   onPasswordChange,
   onRegister,
   onSave,
   onSignIn,
   onSignOut,
+  onToggleDogSounds,
+  onToggleMusic,
   passwordInput,
   signedInUser,
   statusMessage,
@@ -54,6 +59,12 @@ function Header({
         </div>
 
         <div className="flex w-full max-w-xl flex-wrap gap-2 md:justify-end">
+          <button className={buttonClass} disabled={busy} onClick={onToggleMusic} type="button">
+            Music {musicMuted ? "Off" : "On"}
+          </button>
+          <button className={buttonClass} disabled={busy} onClick={onToggleDogSounds} type="button">
+            Dog Sounds {dogSoundsMuted ? "Off" : "On"}
+          </button>
           {signedInUser ? (
             <>
               <button className={buttonClass} disabled={busy} onClick={onSave} type="button">

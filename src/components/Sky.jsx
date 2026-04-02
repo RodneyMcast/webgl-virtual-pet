@@ -1,37 +1,40 @@
+// Room file. This builds the 4 walls and ceiling with the sky texture.
 import { useTexture } from "@react-three/drei";
-import { DoubleSide, RepeatWrapping } from "three";
+import { DoubleSide } from "three";
 
+// Textured walls and ceiling for the surrounding room.
 function Sky() {
   const wallpaper = useTexture("/textures/sky.avif");
-
-  wallpaper.wrapS = RepeatWrapping;
-  wallpaper.wrapT = RepeatWrapping;
-  wallpaper.repeat.set(1.2, 1.2);
+  const roomSize = 600;
+  const wallHeight = 130;
+  const wallY = -1.2 + wallHeight / 2;
+  const roomEdge = roomSize / 2;
+  const ceilingY = -1.2 + wallHeight;
 
   return (
     <group>
-      <mesh position={[0, 3.4, -14]} receiveShadow>
-        <planeGeometry args={[28, 10]} />
+      <mesh position={[0, wallY, -roomEdge]} receiveShadow>
+        <planeGeometry args={[roomSize, wallHeight]} />
         <meshStandardMaterial map={wallpaper} side={DoubleSide} />
       </mesh>
 
-      <mesh position={[0, 3.4, 14]} rotation={[0, Math.PI, 0]} receiveShadow>
-        <planeGeometry args={[28, 10]} />
+      <mesh position={[0, wallY, roomEdge]} rotation={[0, Math.PI, 0]} receiveShadow>
+        <planeGeometry args={[roomSize, wallHeight]} />
         <meshStandardMaterial map={wallpaper} side={DoubleSide} />
       </mesh>
 
-      <mesh position={[-14, 3.4, 0]} rotation={[0, Math.PI / 2, 0]} receiveShadow>
-        <planeGeometry args={[28, 10]} />
+      <mesh position={[-roomEdge, wallY, 0]} rotation={[0, Math.PI / 2, 0]} receiveShadow>
+        <planeGeometry args={[roomSize, wallHeight]} />
         <meshStandardMaterial map={wallpaper} side={DoubleSide} />
       </mesh>
 
-      <mesh position={[14, 3.4, 0]} rotation={[0, -Math.PI / 2, 0]} receiveShadow>
-        <planeGeometry args={[28, 10]} />
+      <mesh position={[roomEdge, wallY, 0]} rotation={[0, -Math.PI / 2, 0]} receiveShadow>
+        <planeGeometry args={[roomSize, wallHeight]} />
         <meshStandardMaterial map={wallpaper} side={DoubleSide} />
       </mesh>
 
-      <mesh position={[0, 8.4, 0]} rotation={[Math.PI / 2, 0, 0]} receiveShadow>
-        <planeGeometry args={[28, 28]} />
+      <mesh position={[0, ceilingY, 0]} rotation={[Math.PI / 2, 0, 0]} receiveShadow>
+        <planeGeometry args={[roomSize, roomSize]} />
         <meshStandardMaterial map={wallpaper} side={DoubleSide} />
       </mesh>
     </group>

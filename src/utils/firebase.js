@@ -1,3 +1,4 @@
+// Firebase helper file. All auth and Firestore reads/writes are kept here.
 import { initializeApp } from "firebase/app";
 import {
   createUserWithEmailAndPassword,
@@ -30,6 +31,7 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
+// Default pet used for new users or fallback loading.
 export function createDefaultPet(userName = "Guest") {
   const label = userName.split("@")[0] || userName;
   const now = Date.now();
@@ -53,6 +55,7 @@ export function createDefaultPet(userName = "Guest") {
   };
 }
 
+// Every user gets a Firestore profile with a role.
 export function createDefaultUserProfile(user) {
   const now = Date.now();
 
@@ -65,22 +68,27 @@ export function createDefaultUserProfile(user) {
   };
 }
 
+// Listen for login/logout changes from Firebase Auth.
 export function listenToAuthChanges(callback) {
   return onAuthStateChanged(auth, callback);
 }
 
+// Create a new Firebase auth account.
 export function registerUser(email, password) {
   return createUserWithEmailAndPassword(auth, email, password);
 }
 
+// Sign in an existing Firebase auth account.
 export function signInUser(email, password) {
   return signInWithEmailAndPassword(auth, email, password);
 }
 
+// Sign the current user out.
 export function signOutUser() {
   return signOut(auth);
 }
 
+// Load the Firestore profile, or create it if it does not exist yet.
 export async function loadUserProfile(user) {
   const userRef = doc(db, "users", user.uid);
   const userSnapshot = await getDoc(userRef);
@@ -96,6 +104,7 @@ export async function loadUserProfile(user) {
   return defaultProfile;
 }
 
+// Real-time listener for the user's role/profile document.
 export function listenToUserProfile(user, callback, onError) {
   const userRef = doc(db, "users", user.uid);
 
@@ -113,6 +122,7 @@ export function listenToUserProfile(user, callback, onError) {
   );
 }
 
+// Load the pet save, or create a default one for first-time users.
 export async function loadPetForUser(user) {
   const petRef = doc(db, "pets", user.uid);
   const petSnapshot = await getDoc(petRef);
@@ -134,6 +144,7 @@ export async function loadPetForUser(user) {
   return defaultPet;
 }
 
+// Real-time listener for the signed-in user's pet data.
 export function listenToPet(user, callback, onError) {
   const petRef = doc(db, "pets", user.uid);
 
@@ -152,6 +163,7 @@ export function listenToPet(user, callback, onError) {
   );
 }
 
+// Admin uses this to read all saved pets from Firestore.
 export function listenToAllPets(callback, onError) {
   const petsRef = collection(db, "pets");
 
@@ -171,6 +183,7 @@ export function listenToAllPets(callback, onError) {
   );
 }
 
+// Save the current pet state back into Firestore.
 export function savePetForUser(user, pet) {
   const petRef = doc(db, "pets", user.uid);
 
@@ -186,10 +199,17 @@ export function savePetForUser(user, pet) {
   );
 }
 
+// Delete the signed-in user's own pet save.
 export function deletePetForUser(user) {
   return deleteDoc(doc(db, "pets", user.uid));
 }
 
+// Admin helper to delete one saved pet by uid.
+export function deletePetById(userId) {
+  return deleteDoc(doc(db, "pets", userId));
+}
+
+// Turn Firebase errors into shorter UI messages.
 export function getFirebaseMessage(error) {
   switch (error.code) {
     case "auth/email-already-in-use":

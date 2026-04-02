@@ -1,7 +1,9 @@
+// Pet model file. The whole pet is built from simple geometry and animated with useFrame.
 import { useFrame } from "@react-three/fiber";
 import { useRef } from "react";
 import { Color, MathUtils } from "three";
 
+// This is the main 3D pet model and face animation.
 function Pet({ color, expression, recentAction, onPetClick }) {
   const rootRef = useRef();
   const leftEyeRef = useRef();
@@ -15,6 +17,7 @@ function Pet({ color, expression, recentAction, onPetClick }) {
   const noseColor = "#d99abb";
 
   useFrame((_, delta) => {
+    // Idle bounce + reaction animation based on mood and recent actions.
     if (!rootRef.current || !leftEyeRef.current || !rightEyeRef.current || !mouthRef.current) {
       return;
     }
@@ -30,19 +33,21 @@ function Pet({ color, expression, recentAction, onPetClick }) {
       recentAction === "pet";
     const isSad = expression === "sad";
     const isDepressed = expression === "depressed";
+    const isPetReacting = recentAction === "pet";
 
     rootRef.current.position.y = MathUtils.damp(
       rootRef.current.position.y,
       0.12 +
         Math.sin(time * 2) * 0.04 +
-        (isHappy ? Math.abs(Math.sin(time * (isJubilant ? 9 : 7))) * (isJubilant ? 0.12 : 0.08) : 0),
+        (isHappy ? Math.abs(Math.sin(time * (isJubilant ? 9 : 7))) * (isJubilant ? 0.12 : 0.08) : 0) +
+        (isPetReacting ? Math.abs(Math.sin(time * 12)) * 0.1 : 0),
       5,
       delta,
     );
 
     rootRef.current.rotation.z = MathUtils.damp(
       rootRef.current.rotation.z,
-      Math.sin(time * 1.8) * 0.02,
+      Math.sin(time * (isPetReacting ? 8 : 1.8)) * (isPetReacting ? 0.12 : 0.02),
       4,
       delta,
     );

@@ -1,5 +1,7 @@
+// Route guard file. This blocks pages unless the user is signed in or is an admin.
 import { Navigate } from "react-router-dom";
 
+// Used for the protected admin page.
 function ProtectedRoute({ busy, signedInUser, userRole, requireAdmin = false, children }) {
   if (busy) {
     return (

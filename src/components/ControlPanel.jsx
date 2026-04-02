@@ -1,3 +1,4 @@
+// Main action buttons for the pet, lighting, and camera views.
 function ControlPanel({
   activeView,
   onColourClick,
@@ -10,6 +11,7 @@ function ControlPanel({
   const buttonClass =
     "w-full rounded-2xl border-2 border-zinc-900 bg-lime-300 px-4 py-3 text-sm font-black text-zinc-900 shadow-[0_4px_0_#3a251f] transition hover:-translate-y-0.5 hover:bg-yellow-200";
 
+  // This highlights the current camera view button.
   function getViewButtonClass(isActive) {
     return `rounded-2xl border-2 border-zinc-900 px-3 py-2 text-sm font-black shadow-[0_4px_0_#3a251f] transition hover:-translate-y-0.5 ${
       isActive ? "bg-yellow-100" : "bg-lime-300"
@@ -59,7 +61,7 @@ function ControlPanel({
       </div>
 
       <p className="text-sm font-bold text-zinc-900/80">
-        Scroll on the scene or press Space to trigger animation.
+        Use WASD to move, +/- to zoom, or press Space to trigger animation.
       </p>
     </section>
   );

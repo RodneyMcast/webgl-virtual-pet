@@ -1,3 +1,4 @@
+// Main 3D scene file. This is where Canvas, lights, room, pet, toy, and controls come together.
 import { Canvas } from "@react-three/fiber";
 import { Suspense, lazy, useRef } from "react";
 import { PCFShadowMap } from "three";
@@ -10,6 +11,7 @@ import Sky from "./Sky";
 
 const ExternalAsset = lazy(() => import("./ExternalAsset"));
 
+// This scene covers the assignment parts for Canvas, lighting, camera, controls, textures, and shadows.
 function PetScene({ lightMode, onPetClick, onSceneWheel, pet, recentAction, view }) {
   const controlsRef = useRef();
 
@@ -24,6 +26,7 @@ function PetScene({ lightMode, onPetClick, onSceneWheel, pet, recentAction, view
         dpr={[1, 1.5]}
         gl={{ antialias: true, powerPreference: "high-performance" }}
         onCreated={({ gl }) => {
+          // Use a supported shadow map mode for cleaner shadows.
           gl.shadowMap.type = PCFShadowMap;
         }}
         shadows

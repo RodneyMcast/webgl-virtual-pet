@@ -1,3 +1,4 @@
+// App entry file. This starts React, routing, and filters a few library-only warnings.
 import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import App from "./App";

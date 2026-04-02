@@ -1,3 +1,4 @@
+// Simple lighting file. This gives the scene a bright mode and a soft mode.
 function Lighting({ mode }) {
   const isSoft = mode === "soft";
 

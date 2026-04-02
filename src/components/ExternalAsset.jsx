@@ -1,8 +1,10 @@
+// External model file. This loads the lion toy so the project includes a real GLTF asset.
 import { Center, useGLTF } from "@react-three/drei";
 import { useEffect } from "react";
 
 const modelPath = "/models/stuffed_lion_toy_low_poly/scene.gltf";
 
+// Load the toy model and let it cast/receive shadows.
 function LoadedModel() {
   const { scene } = useGLTF(modelPath);
 
@@ -22,6 +24,7 @@ function LoadedModel() {
   );
 }
 
+// Only show the toy when the pet action needs it.
 function ExternalAsset({ visible }) {
   if (!visible) {
     return null;
